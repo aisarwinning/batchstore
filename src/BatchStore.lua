@@ -1,23 +1,25 @@
-local BatchStore = {}
+local DataManager = {}
 
-function BatchStore.new(dataName)
-	local self = table.clone(BatchStore)
+function DataManager.new(dataName)
+	assert(dataName, "There needs to be a datastore name specified in order to construct a class")
+	
+	local self = table.clone(DataManager)
 
 	self.dataConstructed = os.time();
-	self.dataCapacity = 50000 -- YOU CAN CHANGE HOWEVER YOU WANT (DEFAULT: 50,000)
+	self.dataCapacity = 50_000; -- YOU CAN CHANGE HOWEVER YOU WANT
 	self.dataCollected = {};
 
 	self.DataStoreService = game:GetService("DataStoreService")
 	self.HttpService = game:GetService("HttpService")
-	
+
 	self.DataStore = self.DataStoreService:GetDataStore(dataName)
-	
-	self._debug = false; -- set to true if you want to debug
+
+	self._debug = true; -- set to true if you want to debug
 
 	return self
 end
 
-function BatchStore:_safecall(method, methodParent, ...)
+function DataManager:_safecall(method, methodParent, ...)
 	local success, err = pcall(method, methodParent, ...)
 
 	if not success then
@@ -29,7 +31,49 @@ function BatchStore:_safecall(method, methodParent, ...)
 	return err
 end
 
-function BatchStore:GetAsync(dataName)
+function DataManager:RemoveAsync(dataName)
+	local foundDataBatch = 0; -- starts at 1
+
+	local dataFound = nil;
+
+	while true do
+		foundDataBatch += 1
+
+		local dataBatch = self.dataCollected[foundDataBatch] or self:_safecall(self.DataStore.GetAsync, self.DataStore, "DATA-BATCH" .. foundDataBatch)
+
+		if dataBatch then
+			if typeof(dataBatch) == "string" then
+				dataBatch = self:_safecall(self.HttpService.JSONDecode, self.HttpService, dataBatch)
+			end
+
+			self.dataCollected[foundDataBatch] = dataBatch;
+
+			if dataBatch[dataName] then
+				dataFound = dataBatch;
+				
+				break
+			end
+		else
+			break
+		end
+
+		task.wait(1)
+	end
+
+	if dataFound then
+		dataFound[dataName] = nil;
+
+		self.dataCollected[foundDataBatch] = dataFound;
+
+		local success = self:_safecall(self.DataStore.SetAsync, self.DataStore, "DATA-BATCH" .. foundDataBatch, dataFound)
+
+		if success == nil and self._debug then
+			warn(">> DATA FAILED TO REMOVE RETURNING WITH A NIL VALUE")
+		end
+	end
+end
+
+function DataManager:GetAsync(dataName)
 	local foundDataBatch = 0; -- starts at 1
 
 	local dataFound = nil;
@@ -61,7 +105,7 @@ function BatchStore:GetAsync(dataName)
 	return dataFound
 end
 
-function BatchStore:SetAsync(dataName, dataValue)
+function DataManager:SetAsync(dataName, dataValue)
 	assert(dataName, "There has to be valid DATA_NAME in order to save data")
 	assert(dataValue, "There has to be valid DATA_VALUE in order to save data")
 
@@ -97,6 +141,8 @@ function BatchStore:SetAsync(dataName, dataValue)
 	end
 
 	i_data[dataName] = dataValue;
+	
+	self.dataCollected[i] = i_data;
 
 	local success = self:_safecall(self.DataStore.SetAsync, self.DataStore, "DATA-BATCH" .. i, i_data)
 
@@ -106,5 +152,5 @@ function BatchStore:SetAsync(dataName, dataValue)
 end
 
 return {
-	new = BatchStore.new
+	new = DataManager.new
 }
