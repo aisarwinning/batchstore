@@ -6,7 +6,7 @@ function DataManager.new(dataName)
 	local self = table.clone(DataManager)
 
 	self.dataConstructed = os.time();
-	self.dataCapacity = 50_000; -- YOU CAN CHANGE HOWEVER YOU WANT
+	self.dataCapacity = 150000; -- YOU CAN CHANGE HOWEVER YOU WANT
 	self.dataCollected = {};
 
 	self.DataStoreService = game:GetService("DataStoreService")
