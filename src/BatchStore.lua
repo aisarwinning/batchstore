@@ -4,7 +4,7 @@ function BatchStore.new(dataName)
 	local self = table.clone(BatchStore)
 
 	self.dataConstructed = os.time();
-	self.dataCapacity = 50_000 -- YOU CAN CHANGE HOWEVER YOU WANT
+	self.dataCapacity = 50000 -- YOU CAN CHANGE HOWEVER YOU WANT (DEFAULT: 50,000)
 	self.dataCollected = {};
 
 	self.DataStoreService = game:GetService("DataStoreService")
