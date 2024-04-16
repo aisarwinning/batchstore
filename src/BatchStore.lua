@@ -1,10 +1,10 @@
-local DataManager = {}
+local BatchStore = {}
 
-function DataManager.new(dataName)
-	local self = table.clone(DataManager)
+function BatchStore.new(dataName)
+	local self = table.clone(BatchStore)
 
 	self.dataConstructed = os.time();
-	self.uniqueDataNumber = 0;
+	self.dataCapacity = 50_000 -- YOU CAN CHANGE HOWEVER YOU WANT
 	self.dataCollected = {};
 
 	self.DataStoreService = game:GetService("DataStoreService")
@@ -17,7 +17,7 @@ function DataManager.new(dataName)
 	return self
 end
 
-function DataManager:_safecall(method, methodParent, ...)
+function BatchStore:_safecall(method, methodParent, ...)
 	local success, err = pcall(method, methodParent, ...)
 
 	if not success then
@@ -29,7 +29,7 @@ function DataManager:_safecall(method, methodParent, ...)
 	return err
 end
 
-function DataManager:GetAsync(dataName)
+function BatchStore:GetAsync(dataName)
 	local foundDataBatch = 0; -- starts at 1
 
 	local dataFound = nil;
@@ -61,7 +61,7 @@ function DataManager:GetAsync(dataName)
 	return dataFound
 end
 
-function DataManager:SetAsync(dataName, dataValue)
+function BatchStore:SetAsync(dataName, dataValue)
 	assert(dataName, "There has to be valid DATA_NAME in order to save data")
 	assert(dataValue, "There has to be valid DATA_VALUE in order to save data")
 
@@ -79,7 +79,7 @@ function DataManager:SetAsync(dataName, dataValue)
 			if dataBatch then
 				local characterLeft = self:_safecall(self.HttpService.JSONEncode, self.HttpService, dataBatch)
 
-				if string.len(characterLeft) >= 50_000 then
+				if string.len(characterLeft) >= self.dataCapacity then
 					if self._debug then
 						warn(">> SKIPPED OVER DATA-BATCH" .. i .. " DUE TO THERE BEING OVER " .. string.len(characterLeft) .. " CHARACTERS")
 					end
@@ -106,5 +106,5 @@ function DataManager:SetAsync(dataName, dataValue)
 end
 
 return {
-	new = DataManager.new
+	new = BatchStore.new
 }
