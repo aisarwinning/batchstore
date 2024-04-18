@@ -2,7 +2,7 @@ local DataManager = {}
 
 function DataManager.new(dataName)
 	assert(dataName, "There needs to be a datastore name specified in order to construct a class")
-	
+
 	local self = table.clone(DataManager)
 
 	self.dataConstructed = os.time();
@@ -50,7 +50,7 @@ function DataManager:RemoveAsync(dataName)
 
 			if dataBatch[dataName] then
 				dataFound = dataBatch;
-				
+
 				break
 			end
 		else
@@ -90,7 +90,7 @@ function DataManager:GetAsync(dataName)
 
 			self.dataCollected[foundDataBatch] = dataBatch;
 
-			if dataBatch[dataName] then
+			if dataBatch then
 				dataFound = dataBatch[dataName]
 
 				break
@@ -141,7 +141,7 @@ function DataManager:SetAsync(dataName, dataValue)
 	end
 
 	i_data[dataName] = dataValue;
-	
+
 	self.dataCollected[i] = i_data;
 
 	local success = self:_safecall(self.DataStore.SetAsync, self.DataStore, "DATA-BATCH" .. i, i_data)
