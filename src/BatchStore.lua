@@ -46,7 +46,7 @@ function DataManager:RemoveAsync(dataName)
 				dataBatch = self:_safecall(self.HttpService.JSONDecode, self.HttpService, dataBatch)
 			end
 
-			self.dataCollected[foundDataBatch] = dataBatch;
+			-- self.dataCollected[foundDataBatch] = dataBatch;
 
 			if dataBatch[dataName] then
 				dataFound = dataBatch;
@@ -63,9 +63,11 @@ function DataManager:RemoveAsync(dataName)
 	if dataFound then
 		dataFound[dataName] = nil;
 
-		self.dataCollected[foundDataBatch] = dataFound;
-
 		local success = self:_safecall(self.DataStore.SetAsync, self.DataStore, "DATA-BATCH" .. foundDataBatch, dataFound)
+		
+		if success then
+			-- self.dataCollected[foundDataBatch] = dataFound;
+		end
 
 		if success == nil and self._debug then
 			warn(">> DATA FAILED TO REMOVE RETURNING WITH A NIL VALUE")
@@ -88,7 +90,7 @@ function DataManager:GetAsync(dataName)
 				dataBatch = self:_safecall(self.HttpService.JSONDecode, self.HttpService, dataBatch)
 			end
 
-			self.dataCollected[foundDataBatch] = dataBatch;
+			-- self.dataCollected[foundDataBatch] = dataBatch;
 
 			if dataBatch then
 				dataFound = dataBatch[dataName]
@@ -142,9 +144,11 @@ function DataManager:SetAsync(dataName, dataValue)
 
 	i_data[dataName] = dataValue;
 
-	self.dataCollected[i] = i_data;
-
 	local success = self:_safecall(self.DataStore.SetAsync, self.DataStore, "DATA-BATCH" .. i, i_data)
+	
+	if success then
+		-- self.dataCollected[i] = i_data;
+	end
 
 	if success == nil and self._debug then
 		warn(">> DATA FAILED TO SAVE RETURNING WITH A NIL VALUE")
