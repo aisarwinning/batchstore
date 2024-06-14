@@ -31,7 +31,15 @@ function DataManager:_safecall(method, methodParent, ...)
 	return err
 end
 
+function DataManager:_affirm(statement, errorMsg) -- Similar to assert() but assert() has performance issues soo!
+	if not statement then
+		error(errorMsg)
+	end
+end
+
 function DataManager:RemoveAsync(dataName)
+	DataManager:_affirm(dataName, "You have to provide a valid 'dataName' in order to call :RemoveAsync")
+	
 	local foundDataBatch = 0; -- starts at 1
 
 	local dataFound = nil;
@@ -76,10 +84,12 @@ function DataManager:RemoveAsync(dataName)
 end
 
 function DataManager:GetAsync(dataName)
+	DataManager:_affirm(dataName, "You have to provide a valid 'dataName' in order to call :GetAsync")
+	
 	local foundDataBatch = 0; -- starts at 1
 
 	local dataFound = nil;
-
+	
 	while true do
 		foundDataBatch += 1
 
@@ -95,22 +105,24 @@ function DataManager:GetAsync(dataName)
 			if dataBatch then
 				dataFound = dataBatch[dataName]
 
-				break
+				if dataFound then
+					break
+				end
 			end
+			
+			task.wait(1)
 		else
 			break
 		end
-
-		task.wait(2)
 	end
 
 	return dataFound
 end
 
 function DataManager:SetAsync(dataName, dataValue)
-	assert(dataName, "There has to be valid DATA_NAME in order to save data")
-	assert(dataValue, "There has to be valid DATA_VALUE in order to save data")
-
+	DataManager:_affirm(dataName, "You have to provide a valid 'dataName' in order to call :SetAsync")
+	DataManager:_affirm(dataValue, "You have to provide a valid 'dataValue' in order to call :SetAsync")
+	
 	-- TODO: Finish Data
 
 	local i = 0;
@@ -153,6 +165,60 @@ function DataManager:SetAsync(dataName, dataValue)
 	if success == nil and self._debug then
 		warn(">> DATA FAILED TO SAVE RETURNING WITH A NIL VALUE")
 	end
+end
+
+function DataManager:ListKeysAsync(prefix, pageSize, cursor, excludeDeleted)
+	prefix = prefix or "";
+	pageSize = pageSize or 0;
+	cursor = cursor or "";
+	
+	local success, Pages = self:_safecall(self.DataStore.ListKeysAsync, self.DataStore, prefix, pageSize, cursor, excludeDeleted)
+
+	if success == nil then
+		warn(">> DATA FAILED TO RETURN LIST KEYS ASYNC")
+		
+		return {};
+	end
+
+	local returnedData = {};
+	
+	while true do
+		task.wait()
+
+		local pageItems = Pages:GetCurrentPage()
+
+		for _, data in pageItems do
+			local entries = self.DataStore:GetAsync(data.KeyName)
+
+			table.insert(returnedData, entries)
+		end
+		
+		if Pages.IsFinished then 
+			break 
+		else 
+			Pages:AdvanceToNextPageAsync() 
+		end
+	end
+	
+	return returnedData
+end
+
+function DataManager:UpdateAsync(keyName, transformFunction)
+	DataManager:_affirm(keyName, "You have to provide a valid 'keyName' in order to call :UpdateAsync")
+	DataManager:_affirm(transformFunction, "You have to provide a valid 'transformFunction' in order to call :RemoveAsync")
+	
+	DataManager:_affirm((typeof(keyName) == "string" or typeof(keyName) == "number"), "You have to provide a valid (string/number) 'dataValue' in order to call :UpdateAsync")
+	DataManager:_affirm(typeof(transformFunction) == "function", "You have to provide a valid 'transformFunction' in order to call :RemoveAsync")
+	
+	local currentData = self:GetAsync(keyName);
+	
+	local newRecievedData = self:_safecall(transformFunction, currentData)
+	
+	if not newRecievedData then
+		return;
+	end
+	
+	self:SetAsync(keyName, newRecievedData)
 end
 
 return {
